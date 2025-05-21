@@ -5,8 +5,8 @@ ZEROTIER_PATH="$(pwd)/data/zerotier"
 CONFIG_PATH="${ZEROTIER_PATH}/config"
 DIST_PATH="${ZEROTIER_PATH}/dist"
 ZTNCUI_PATH="${ZEROTIER_PATH}/ztncui"
-DOCKER_IMAGE_THRID="xubiaolin/zerotier-planet:latest"
-DOCKER_IMAGE_SRC="xubiaolin/zerotier-planet:latest"
+DOCKER_IMAGE_THRID="onlypeng/zerotier-planet:latest"
+DOCKER_IMAGE_SRC="onlypeng/zerotier-planet:latest"
 DOCKER_IMAGE=$DOCKER_IMAGE_THRID
 print_message() {
     local message=$1
@@ -101,8 +101,12 @@ check_port() {
 read_port() {
     local port
     local prompt=$1
+    local default=$2
     while :; do
         read -p "${prompt}" port
+        if [[ -z "${port}" ]]; then
+            port="$default" && break
+        fi
         [[ "$port" =~ ^[0-9]+$ ]] && break
         echo "端口号必须是数字，请重新输入: "
     done
@@ -129,24 +133,23 @@ install() {
         if [[ "$update_version" =~ ^[Yy]$ ]]; then
             upgrade
             exit 0
+        else
+            read -p "重新安装则会删除原有数据，是否继续?(y/n)" continue_install
+            if [[ "$continue_install" =~ ^[Yy]$ ]]; then
+                echo "开始删除容器和数据..."
+                docker rm -f ${CONTAINER_NAME} || true
+                rm -rf ${ZEROTIER_PATH}
+            else
+                exit 0
+            fi
         fi
     fi
 
-    echo "开始安装，如果你已经安装了，将会删除旧的数据，10秒后开始安装..."
-
-    
-    sleep 10
+    echo "开始安装..."
 
     install_lsof
 
-    docker rm -f ${CONTAINER_NAME} || true
-    rm -rf ${ZEROTIER_PATH}
-
-    ZT_PORT=$(read_port "请输入zerotier-planet要使用的端口号，例如9994: ")
-    API_PORT=$(read_port "请输入zerotier-planet的API端口号，例如3443: ")
-    FILE_PORT=$(read_port "请输入zerotier-planet的FILE端口号，例如3000: ")
-
-    read -p "请输入域名，用于实现IP变化自动更新planet和moon文件,留空则不启用" domain
+    read -p "请输入域名，用于实现IP变化自动更新planet和moon文件,留空则不启用: " domain
     if  [[ -n "${domain}" ]]; then
         if command -v dig >/dev/null 2>&1; then
             ipv4=$(dig +short A "$domain" | head -n 1)
@@ -174,10 +177,10 @@ install() {
             read -p "请输入IPv6地址(可留空): " ipv6
         fi
     fi
+    ZT_PORT=$(read_port "请输入zerotier-planet要使用的端口号，默认9994: " "9994")
+    API_PORT=$(read_port "请输入zerotier-planet的API端口号，默认3443: " "3443")
+    FILE_PORT=$(read_port "请输入zerotier-planet的FILE端口号，默认3000: " "3000")
     echo "---------------------------"
-    echo "使用的端口号为：${ZT_PORT}"
-    echo "API端口号为：${API_PORT}"
-    echo "FILE端口号为：${FILE_PORT}"
     if [[ -n "${domain}" ]]; then
         echo "域名为：${domain}"
         echo "解析后IPv4地址为：${ipv4}"
@@ -186,6 +189,9 @@ install() {
         echo "IPv4地址为：${ipv4}"
         echo "IPv6地址为：${ipv6}"
     fi
+    echo "使用的端口号为：${ZT_PORT}"
+    echo "API端口号为：${API_PORT}"
+    echo "FILE端口号为：${FILE_PORT}"
     echo "---------------------------"
 
     docker run -d \
@@ -211,7 +217,7 @@ install() {
 
     KEY=$(docker exec -it ${CONTAINER_NAME} sh -c 'cat /app/config/file_server.key' | tr -d '\r')
     MOON_NAME=$(docker exec -it ${CONTAINER_NAME} sh -c 'ls /app/dist | grep moon' | tr -d '\r')
-    host=[ -n "$domain" ] && "$domain" || $ipv4
+    [ -n "$domain" ] && host=$domain || host=$ipv4
     echo "安装完成"
     echo "---------------------------"
     echo "请访问 http://${host}:${API_PORT} 进行配置"
@@ -219,10 +225,10 @@ install() {
     echo "默认密码：password"
     echo "请及时修改密码"
     echo "---------------------------"
-    echo "moon配置和planet配置在 ${DIST_PATH} 目录下"
     echo "moons 文件下载： http://${host}:${FILE_PORT}/${MOON_NAME}?key=${KEY} "
-    echo "planet文件下载： http://${host}:${FILE_PORT}/planet?key=${KEY} "
-    echo "服务端IP记录文件下载地址为： http://${host}:${FILE_PORT}/ips?key=${KEY} "
+    echo "planet文件下载： http://${host}:${FILE_PORT}/planet?key=${KEY}"
+    echo "服务端IP记录文件下载： http://${host}:${FILE_PORT}/ips?key=${KEY}"
+    echo "moon和plane配置在本地 ${DIST_PATH} 目录下"
     echo "---------------------------"
     echo "请放行以下端口：${ZT_PORT}/tcp,${ZT_PORT}/udp，${API_PORT}/tcp，${FILE_PORT}/tcp"
     echo "---------------------------"
@@ -327,7 +333,7 @@ info() {
     ZT_PORT=$(extract_config "zerotier-one.port")
     KEY=$(extract_config "file_server.key")
     MOON_NAME=$(ls ${DIST_PATH}/ | grep moon | tr -d '\r')
-    host=[ -n "$domain" ] && $domain || $ipv4
+    [ -n "$domain" ] && host=$domain || host=$ipv4
     echo "---------------------------"
     print_message "以下端口的tcp和udp协议请放行：${ZT_PORT}，${API_PORT}，${FILE_PORT}" "32"
     echo "---------------------------"
@@ -337,9 +343,9 @@ info() {
     echo "请及时修改密码"
     echo "---------------------------"
     print_message "moon配置和planet配置在 ${DIST_PATH} 目录下" "32"
-    print_message "planet文件下载： http://${host}:${FILE_PORT}/planet?key=${KEY} " "32"
-    print_message "moon文件下载： http://${host}:${FILE_PORT}/${MOON_NAME}?key=${KEY} " "32"
-    print_message "服务端IP记录文件下载地址为： http://${host}:${FILE_PORT}/ips?key=${KEY} " "32"
+    print_message "planet文件下载： http://${host}:${FILE_PORT}/planet?key=${KEY}" "32"
+    print_message "moon文件下载： http://${host}:${FILE_PORT}/${MOON_NAME}?key=${KEY}" "32"
+    print_message "服务端IP记录文件下载： http://${host}:${FILE_PORT}/ips?key=${KEY}" "32"
 }
 
 uninstall() {

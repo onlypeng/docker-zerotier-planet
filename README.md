@@ -190,12 +190,12 @@ sudo systemctl restart docker
 ## 3.2：下载项目源码
 官方地址
 ```
-git clone https://github.com/xubiaolin/docker-zerotier-planet.git
+git clone https://github.com/onlypeng/docker-zerotier-planet.git
 ```
 
 加速地址
 ```
-git clone https://ghproxy.imoyuapp.win/https://github.com/xubiaolin/docker-zerotier-planet.git
+git clone https://ghproxy.imoyuapp.win/https://github.com/onlypeng/docker-zerotier-planet.git
 ```
 
 ## 3.3：执行安装脚本
@@ -470,7 +470,7 @@ version: '3'
 
 services:
   myztplanet:
-    image: xubiaolin/zerotier-planet:latest
+    image: onlypeng/zerotier-planet:latest
     container_name: ztplanet
     ports:
       - 9994:9994
@@ -506,7 +506,7 @@ services:
 
 
 # 类似项目
-- [wireguard一键脚本](https://github.com/xubiaolin/wireguard-onekey)
+- [wireguard一键脚本](https://github.com/onlypeng/wireguard-onekey)
 
 
 # 捐助和支持

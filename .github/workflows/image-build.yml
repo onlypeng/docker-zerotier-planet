@@ -37,7 +37,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/zerotier-planet-test:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/zerotier-planet-test:${{ steps.get_tag.outputs.latest_tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/zerotier-planet:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/zerotier-planet:${{ steps.get_tag.outputs.latest_tag }}
           build-args: |
             DERP_VERSION=${{ steps.get_tag.outputs.latest_tag }} 
