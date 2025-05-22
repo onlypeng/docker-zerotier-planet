@@ -478,8 +478,7 @@ services:
       - 3443:3443
       - 3000:3000
     environment:
-      - IP_ADDR4=[IPV4IP ADDRESS]
-      - IP_ADDR6=
+      - DOMAIN=yourdomain.com
       - ZT_PORT=9994
       - API_PORT=3443
       - FILE_SERVER_PORT=3000
